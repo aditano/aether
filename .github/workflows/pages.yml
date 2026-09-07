@@ -20,8 +20,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Stage site
         run: |
-          mkdir -p dist
-          cp index.html styles.css app.js favicon.svg dist/
+          mkdir -p dist/js
+          cp index.html styles.css favicon.svg dist/
+          cp js/*.js dist/js/
           touch dist/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
