@@ -154,7 +154,8 @@ function alertsHtml(alerts, tz) {
 }
 
 function skeleton() {
-  return `<div class="hero-open"><div class="spin" style="height:16rem"></div></div>
+  const finding = state.locating ? `<p class="kicker locate-note">Finding your location</p>` : "";
+  return `<div class="hero-open">${finding}<div class="spin" style="height:16rem"></div></div>
     ${radarSlot()}
     <div class="spin" style="height:13rem"></div>
     <div class="grid-read"><div class="spin" style="height:16rem"></div><div class="spin" style="height:16rem"></div></div>
@@ -453,7 +454,9 @@ function bindChrome() {
     btn.addEventListener("click", () => {
       const p = state.saved.find((s) => s.id === btn.getAttribute("data-saved"));
       if (p) {
+        state.locateSeq += 1;
         state.place = p;
+        state.placeSource = "search";
         persist();
         window.dispatchEvent(new CustomEvent("aether:refresh"));
       }
@@ -482,7 +485,9 @@ function bindChrome() {
 }
 
 function pickPlace(hit) {
+  state.locateSeq += 1;
   state.place = hit;
+  state.placeSource = "search";
   state.q = "";
   state.hits = [];
   state.hitIndex = -1;

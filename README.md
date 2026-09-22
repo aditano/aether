@@ -16,7 +16,8 @@ This is not RadarScope. There is no Level-II velocity, storm tracking, or lightn
 - Wind rose and a short instrument log (dew point, pressure, sky, yesterday, air quality)
 - A week sentence, a 10-day list, and the moon
 - NWS alerts, with severe and extreme alerts taking the headline
-- City search, geolocation, saved places, °F / °C
+- On open, the browser’s location. A city you search for stays until you use the location button again. Radnor is the fallback when the browser will not share a location
+- City search, saved places, °F / °C
 
 ## Sources
 

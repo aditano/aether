@@ -28,21 +28,49 @@ async function refresh({ silent = false } = {}) {
   }
 }
 
-async function locate() {
-  if (!navigator.geolocation) return;
+function locate({ initial = false } = {}) {
+  const seq = ++state.locateSeq;
+  const stillCurrent = () => state.locateSeq === seq;
+  if (!navigator.geolocation) {
+    state.locating = false;
+    if (initial) refresh();
+    return;
+  }
   state.locating = true;
+  if (!state.bundle) state.loading = true;
   render();
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      state.place = await reversePlace(pos.coords.latitude, pos.coords.longitude);
-      persist();
-      refresh();
-    },
-    () => {
-      state.locating = false;
-      render();
-    },
-  );
+  const giveUp = () => {
+    if (!stillCurrent()) return;
+    state.locating = false;
+    if (initial && !state.bundle) refresh();
+    else render();
+  };
+  const request = () => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        if (!stillCurrent()) return;
+        state.place = await reversePlace(pos.coords.latitude, pos.coords.longitude);
+        if (!stillCurrent()) return;
+        state.placeSource = "geo";
+        persist();
+        refresh();
+      },
+      giveUp,
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 10 * 60 * 1000 },
+    );
+  };
+  if (!initial || !navigator.permissions?.query) {
+    request();
+    return;
+  }
+  navigator.permissions
+    .query({ name: "geolocation" })
+    .then((perm) => {
+      if (!stillCurrent()) return;
+      if (perm?.state === "denied") giveUp();
+      else request();
+    })
+    .catch(request);
 }
 
 window.addEventListener("aether:refresh", () => refresh());
@@ -62,4 +90,5 @@ window.addEventListener("keydown", (e) => {
 
 setInterval(() => refresh({ silent: true }), 5 * 60 * 1000);
 
-refresh();
+if (state.placeSource === "search") refresh();
+else locate({ initial: true });

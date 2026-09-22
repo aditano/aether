@@ -532,6 +532,7 @@ body.studio .radar-foot {
 .spin { animation: pulse 1.2s ease-in-out infinite; background: rgb(236 238 242 / 0.06); border-radius: 16px; }
 @keyframes pulse { 50% { opacity: 0.55; } }
 .hero-open { padding: 0.2rem 0 0.4rem; }
+.locate-note { margin: 0 0 0.85rem; }
 .hero-meta { margin: 0.45rem 0 0; }
 .hero-split { display: grid; gap: 1.25rem; margin-top: 1.35rem; align-items: end; }
 .hero-open .place,
