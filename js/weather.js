@@ -16,29 +16,48 @@ export async function searchPlaces(q) {
   }));
 }
 
+function settlementKind(description) {
+  const text = String(description || "").toLowerCase();
+  if (text.startsWith("former") || text.includes("constituency") || text.includes("borough")) return "skip";
+  if (/\b(city|town|village|township|municipality|hamlet|capital)\b/.test(text)) return "place";
+  return "other";
+}
+
+function countryLabel(code, name) {
+  if (code === "US") return "United States";
+  if (code === "GB") return "United Kingdom";
+  return name || "";
+}
+
+export function placeFromReverse(json, lat, lon) {
+  const admin = json?.localityInfo?.administrative || [];
+  const places = admin.filter((item) => item?.name && settlementKind(item.description) === "place");
+  places.sort((a, b) => (b.order || 0) - (a.order || 0));
+  const name = places[0]?.name || json?.city || json?.locality || json?.principalSubdivision || "My location";
+  const region = json?.principalSubdivision && json.principalSubdivision !== name ? json.principalSubdivision : "";
+  const country = countryLabel(json?.countryCode, json?.countryName);
+  return {
+    id: `${Number(lat).toFixed(3)},${Number(lon).toFixed(3)}`,
+    name,
+    detail: [region, country].filter(Boolean).join(", "),
+    lat,
+    lon,
+  };
+}
+
 export async function reversePlace(lat, lon) {
   try {
-    const url = new URL("https://geocoding-api.open-meteo.com/v1/reverse");
-    url.searchParams.set("latitude", lat.toFixed(4));
-    url.searchParams.set("longitude", lon.toFixed(4));
-    url.searchParams.set("language", "en");
-    url.searchParams.set("format", "json");
+    const url = new URL("https://api.bigdatacloud.net/data/reverse-geocode-client");
+    url.searchParams.set("latitude", String(lat));
+    url.searchParams.set("longitude", String(lon));
+    url.searchParams.set("localityLanguage", "en");
     const json = await getJson(url);
-    const r = json.results?.[0];
-    if (r) {
-      return {
-        id: String(r.id),
-        name: r.name,
-        detail: [r.admin1, r.country].filter(Boolean).join(", "),
-        lat,
-        lon,
-      };
-    }
+    if (json && !json.error) return placeFromReverse(json, lat, lon);
   } catch {}
   return {
-    id: `${lat.toFixed(3)},${lon.toFixed(3)}`,
+    id: `${Number(lat).toFixed(3)},${Number(lon).toFixed(3)}`,
     name: "My location",
-    detail: `${lat.toFixed(3)}°, ${lon.toFixed(3)}°`,
+    detail: `${Number(lat).toFixed(3)}°, ${Number(lon).toFixed(3)}°`,
     lat,
     lon,
   };

@@ -21,7 +21,8 @@ This is not RadarScope. There is no Level-II velocity, storm tracking, or lightn
 
 ## Sources
 
-- [Open-Meteo](https://open-meteo.com) — forecast, geocoding, air quality
+- [Open-Meteo](https://open-meteo.com) — forecast, city search, air quality
+- [BigDataCloud](https://www.bigdatacloud.com/reverse-geocoding) — place name for the browser’s location
 - [Iowa Environmental Mesonet](https://mesonet.agron.iastate.edu) — NEXRAD, MRMS, GOES, HRRR tiles
 - [National Weather Service](https://www.weather.gov) — US alerts and fallback forecast
 - [RainViewer](https://www.rainviewer.com/api.html) — global radar outside CONUS
