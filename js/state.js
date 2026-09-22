@@ -8,9 +8,22 @@ export const DEFAULT_PLACE = {
   lon: -75.3599,
 };
 
+export function resolveOpenPlace(saved, fallback = DEFAULT_PLACE) {
+  const place = saved?.place;
+  if (place?.lat == null || place.lon == null || !place.name) {
+    return { place: fallback, source: "default", locate: true };
+  }
+  if (saved.placeSource === "search") return { place, source: "search", locate: false };
+  if (saved.placeSource === "geo") return { place, source: "geo", locate: true };
+  if (place.id && place.id !== fallback.id) return { place, source: "search", locate: false };
+  return { place: fallback, source: "default", locate: true };
+}
+
 export const state = {
   units: "imperial",
   place: DEFAULT_PLACE,
+  placeSource: "default",
+  locateSeq: 0,
   saved: [],
   q: "",
   hits: [],
@@ -29,23 +42,24 @@ export const state = {
   alertOpen: null,
 };
 
+function applyStored(saved) {
+  if (!saved) return;
+  const open = resolveOpenPlace(saved);
+  state.place = open.place;
+  state.placeSource = open.source;
+  if (saved.units) state.units = saved.units;
+  if (Array.isArray(saved.saved)) state.saved = saved.saved;
+  if (typeof saved.opacity === "number") state.opacity = saved.opacity;
+  if (typeof saved.speed === "number") state.speed = saved.speed;
+  if (typeof saved.snow === "boolean") state.snow = saved.snow;
+}
+
 try {
-  const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
-  if (saved?.place) state.place = saved.place;
-  if (saved?.units) state.units = saved.units;
-  if (Array.isArray(saved?.saved)) state.saved = saved.saved;
-  if (typeof saved?.opacity === "number") state.opacity = saved.opacity;
-  if (typeof saved?.speed === "number") state.speed = saved.speed;
-  if (typeof saved?.snow === "boolean") state.snow = saved.snow;
+  applyStored(JSON.parse(localStorage.getItem(STORE_KEY) || "null"));
 } catch {}
 
 try {
-  const legacy = JSON.parse(localStorage.getItem("aether-v1") || "null");
-  if (legacy && !localStorage.getItem(STORE_KEY)) {
-    if (legacy.place) state.place = legacy.place;
-    if (legacy.units) state.units = legacy.units;
-    if (Array.isArray(legacy.saved)) state.saved = legacy.saved;
-  }
+  if (!localStorage.getItem(STORE_KEY)) applyStored(JSON.parse(localStorage.getItem("aether-v1") || "null"));
 } catch {}
 
 export function persist() {
@@ -54,6 +68,7 @@ export function persist() {
     JSON.stringify({
       units: state.units,
       place: state.place,
+      placeSource: state.placeSource,
       saved: state.saved,
       opacity: state.opacity,
       speed: state.speed,
