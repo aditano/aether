@@ -25,8 +25,31 @@ export function weatherInfo(code, isDay) {
   return { label: "Fair", kind: "clear" };
 }
 
+const CARD_NAME = {
+  N: "north",
+  NNE: "north-northeast",
+  NE: "northeast",
+  ENE: "east-northeast",
+  E: "east",
+  ESE: "east-southeast",
+  SE: "southeast",
+  SSE: "south-southeast",
+  S: "south",
+  SSW: "south-southwest",
+  SW: "southwest",
+  WSW: "west-southwest",
+  W: "west",
+  WNW: "west-northwest",
+  NW: "northwest",
+  NNW: "north-northwest",
+};
+
 export function cardinal(deg) {
   return CARD[Math.round((((Number(deg) % 360) + 360) % 360) / 22.5) % 16];
+}
+
+export function cardinalName(deg) {
+  return CARD_NAME[cardinal(deg)] || "";
 }
 
 export function uvBand(uv) {
@@ -102,10 +125,65 @@ export function hourIndex(times, current) {
 }
 
 export function fmtPressure(hpa, units) {
-  if (hpa == null) return { value: "—", unit: "" };
+  if (hpa == null || Number.isNaN(Number(hpa))) return { value: "—", unit: "" };
   return units === "imperial"
-    ? { value: String(r1(hpa * 0.02953)), unit: "inHg" }
+    ? { value: (Number(hpa) * 0.02953).toFixed(2), unit: "inHg" }
     : { value: String(Math.round(hpa)), unit: "hPa" };
+}
+
+export function todayDailyIndex(forecast) {
+  const times = forecast?.daily?.time;
+  if (!times?.length) return 0;
+  const today = String(forecast.current?.time || "").slice(0, 10);
+  if (!today) return 0;
+  const i = times.findIndex((t) => String(t).slice(0, 10) >= today);
+  return i < 0 ? 0 : i;
+}
+
+export function hourSerial(iso) {
+  const s = String(iso || "");
+  if (s.length < 13) return null;
+  const y = Number(s.slice(0, 4));
+  const mo = Number(s.slice(5, 7));
+  const d = Number(s.slice(8, 10));
+  const h = Number(s.slice(11, 13));
+  if ([y, mo, d, h].some((n) => Number.isNaN(n))) return null;
+  return Date.UTC(y, mo - 1, d, h);
+}
+
+export function findHourOffset(times, currentIso, offsetHours) {
+  if (!times?.length) return -1;
+  const target = hourSerial(currentIso);
+  if (target == null) return -1;
+  const want = target - offsetHours * 3600000;
+  return times.findIndex((t) => hourSerial(t) === want);
+}
+
+export function proseTime(iso) {
+  const s = String(iso || "");
+  let h = Number(s.slice(11, 13));
+  const m = Number(s.slice(14, 16));
+  if (Number.isNaN(h)) return "";
+  const suffix = h >= 12 ? "pm" : "am";
+  h %= 12;
+  if (h === 0) h = 12;
+  if (!m) return `${h}${suffix}`;
+  return `${h}:${String(m).padStart(2, "0")}${suffix}`;
+}
+
+export function proseWhen(iso, nowIso) {
+  const t = proseTime(iso);
+  if (!t) return "";
+  const day = String(iso).slice(0, 10);
+  const today = String(nowIso || "").slice(0, 10);
+  if (today && day && day !== today) return `${t} tomorrow`;
+  return t;
+}
+
+export function fmtCoord(lat, lon) {
+  const ns = lat >= 0 ? "N" : "S";
+  const ew = lon >= 0 ? "E" : "W";
+  return `${Math.abs(Number(lat)).toFixed(2)}°${ns} ${Math.abs(Number(lon)).toFixed(2)}°${ew}`;
 }
 
 export function fmtVis(v, units) {
@@ -191,22 +269,6 @@ export async function getJson(url, headers) {
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error("fail " + res.status);
   return res.json();
-}
-
-export function rainTiming(hourly, idx, units) {
-  const end = Math.min(hourly.time.length, idx + 24);
-  for (let i = idx; i < end; i++) {
-    const pop = hourly.precipitation_probability?.[i] ?? 0;
-    const amt = hourly.precipitation?.[i] ?? 0;
-    if (pop >= 40 || amt > 0) {
-      const when = i === idx ? "this hour" : `after ${fmtHour(hourly.time[i])}`;
-      const kind = weatherInfo(hourly.weather_code?.[i], hourly.is_day?.[i]).kind;
-      const verb = kind === "snow" ? "Snow" : kind === "storm" ? "Storms" : "Rain";
-      const extra = amt > 0 ? ` · ${fmtPrecip(amt, units)}` : "";
-      return `${verb} likely ${when}${extra}`;
-    }
-  }
-  return "No rain expected in the next 24 hours";
 }
 
 export const searchIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>`;

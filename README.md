@@ -1,6 +1,6 @@
 # Aether
 
-A live weather observatory with a cinematic dashboard and a fullscreen radar studio. US views use IEM NEXRAD, GOES, and HRRR. Everywhere else falls back to RainViewer’s global composite.
+A weather observatory. The page opens with a briefing written from the forecast on this device, then a full-width radar and a 24-hour arc of the sky. US views use IEM NEXRAD, GOES, and HRRR. Everywhere else falls back to RainViewer’s global composite.
 
 **Live:** [https://aditano.github.io/aether/](https://aditano.github.io/aether/)
 
@@ -8,13 +8,14 @@ This is not RadarScope. There is no Level-II velocity, storm tracking, or lightn
 
 ## What it shows
 
-- Immersive radar: dashboard preview plus fullscreen studio (`F` to toggle, `Esc` to leave)
+- A place-specific briefing: what is happening, what is left of the day, and what to wear. Calculated in the browser from the forecast, with no language model
+- Full-width radar, plus a fullscreen studio (`F` to toggle, `Esc` to leave)
 - CONUS reflectivity loops (NEXRAD), 1-hour MRMS precip, GOES satellite, HRRR forecast reflectivity
 - Global RainViewer composite outside the US
-- Current temperature, feel, condition icons, and a rain-timing line
-- Wind rose, UV, humidity, pressure trend, visibility, air quality (AQI + pollutants)
-- Next 24 hours, 36-hour chart, and a 10-day outlook
-- Sun path, moon phase, NWS alerts with polygons on the map
+- A 24-hour arc: sky color, temperature, chance of precip, sunrise and sunset
+- Wind rose and a short instrument log (dew point, pressure, sky, yesterday, air quality)
+- A week sentence, a 10-day list, and the moon
+- NWS alerts, with severe and extreme alerts taking the headline
 - City search, geolocation, saved places, °F / °C
 
 ## Sources

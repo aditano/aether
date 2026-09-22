@@ -57,6 +57,7 @@ async function fetchOpenMeteo(lat, lon, units) {
   url.searchParams.set("longitude", lon);
   url.searchParams.set("timezone", "auto");
   url.searchParams.set("forecast_days", "10");
+  url.searchParams.set("past_days", "1");
   url.searchParams.set("current", CURRENT);
   url.searchParams.set("hourly", HOURLY);
   url.searchParams.set("daily", DAILY);
@@ -64,7 +65,17 @@ async function fetchOpenMeteo(lat, lon, units) {
   url.searchParams.set("wind_speed_unit", units === "metric" ? "kmh" : "mph");
   url.searchParams.set("precipitation_unit", units === "metric" ? "mm" : "inch");
   const raw = await getJson(url);
-  return { timezone: raw.timezone, current: raw.current, hourly: raw.hourly, daily: raw.daily };
+  return scaleVisibility({ timezone: raw.timezone, current: raw.current, hourly: raw.hourly, daily: raw.daily }, units);
+}
+
+function scaleVisibility(forecast, units) {
+  const convert = (meters) => {
+    if (meters == null || Number.isNaN(Number(meters))) return null;
+    return units === "imperial" ? Number(meters) * 3.28084 : Number(meters);
+  };
+  forecast.current.visibility = convert(forecast.current.visibility);
+  if (forecast.hourly.visibility) forecast.hourly.visibility = forecast.hourly.visibility.map(convert);
+  return forecast;
 }
 
 function codeFromText(text) {
