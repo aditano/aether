@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildArc } from "../js/arc.js";
+import { arcLayout, buildArc } from "../js/arc.js";
 import { composeBriefing } from "../js/briefing.js";
 import { hourSerial, todayDailyIndex } from "../js/util.js";
 
@@ -387,4 +387,24 @@ test("rain moving off when the last wet hour just ended", () => {
   });
   const briefing = composeBriefing(forecast, "imperial");
   assert.equal(briefing.headline, "The rain is moving off.");
+});
+
+test("phone arc layout keeps hour labels near their real size", () => {
+  const wide = arcLayout(1280);
+  const phone = arcLayout(390);
+  assert.equal(wide.width, 960);
+  assert.equal(wide.labelSize, 11);
+  assert.ok(phone.width < 400);
+  assert.ok(phone.labelSize >= 14);
+  assert.equal(phone.labelEvery, 4);
+  const forecast = makeForecast({
+    start: "2026-09-22T12:00",
+    end: "2026-09-23T18:00",
+    now: "2026-09-22T15:00",
+    current: { temp: 64, feels: 62, code: 2, cloud: 40, day: 1 },
+  });
+  const arc = buildArc(forecast, "imperial", phone);
+  assert.match(arc.svg, /viewBox="0 0 \d+ 176"/);
+  assert.match(arc.svg, /font-size="14"/);
+  assert.equal(buildArc(forecast, "imperial").svg.includes('viewBox="0 0 960 208"'), true);
 });

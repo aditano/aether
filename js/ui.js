@@ -1,4 +1,4 @@
-import { buildArc } from "./arc.js";
+import { arcLayout, buildArc } from "./arc.js";
 import { composeBriefing } from "./briefing.js";
 import { moonDisc, weatherIcon } from "./icons.js";
 import { afterDashboardRender, parkRadar } from "./radar.js";
@@ -24,6 +24,12 @@ import {
 import { searchPlaces } from "./weather.js";
 
 let arcModel = null;
+let lastArcKey = "";
+
+function arcKey() {
+  const layout = arcLayout(window.innerWidth);
+  return `${layout.width}:${layout.height}:${layout.labelEvery}`;
+}
 
 function applySky(kind, tod) {
   const nextKind = kind || "clear";
@@ -192,7 +198,8 @@ export function render() {
   const info = weatherInfo(c.weather_code, c.is_day);
   const dayIdx = todayDailyIndex(f);
   const briefing = composeBriefing(f, units, { alerts: bundle.alerts, air: bundle.air });
-  arcModel = buildArc(f, units);
+  arcModel = buildArc(f, units, arcLayout(window.innerWidth));
+  lastArcKey = arcKey();
   const tod = timeOfDay(c.time, f.daily.sunrise?.[dayIdx], f.daily.sunset?.[dayIdx], c.is_day);
   applySky(info.kind, tod);
   const rounded = c.temperature_2m == null ? "—" : Math.round(c.temperature_2m);
@@ -362,13 +369,21 @@ function bindArc() {
     if (!hour) return;
     tip.hidden = false;
     tip.textContent = hour.detail;
-    if (anchor == null) {
-      tip.style.left = `${((index + 0.5) / arcModel.count) * 100}%`;
+    const rect = wrap.getBoundingClientRect();
+    let center = anchor == null
+      ? ((index + 0.5) / arcModel.count) * rect.width
+      : anchor - rect.left;
+    tip.style.transform = "translateX(-50%)";
+    tip.style.left = "0px";
+    const tipWidth = tip.offsetWidth;
+    if (tipWidth >= rect.width - 8) {
+      tip.style.left = "4px";
+      tip.style.transform = "none";
       return;
     }
-    const rect = wrap.getBoundingClientRect();
-    const t = Math.max(0, Math.min(1, (anchor - rect.left) / rect.width));
-    tip.style.left = `${t * 100}%`;
+    const half = tipWidth / 2;
+    center = Math.max(half + 4, Math.min(rect.width - half - 4, center));
+    tip.style.left = `${center}px`;
   };
   const indexAt = (clientX) => {
     const pt = svg.createSVGPoint();
@@ -382,33 +397,43 @@ function bindArc() {
     return Math.max(0, Math.min(count - 1, Math.floor((local.x - pad) / col)));
   };
   let cursor = 0;
-  wrap.addEventListener("mousemove", (e) => {
-    cursor = indexAt(e.clientX);
-    showIndex(cursor, e.clientX);
+  const point = (clientX) => {
+    cursor = indexAt(clientX);
+    showIndex(cursor, clientX);
+  };
+  wrap.addEventListener("pointermove", (e) => {
+    if (e.pointerType === "touch" && e.buttons === 0) return;
+    point(e.clientX);
   });
-  wrap.addEventListener("mouseleave", () => {
+  wrap.addEventListener("pointerdown", (e) => {
+    point(e.clientX);
+  });
+  wrap.addEventListener("pointerleave", (e) => {
+    if (e.pointerType === "touch") return;
     tip.hidden = true;
   });
-  wrap.addEventListener("touchstart", (e) => {
-    if (!e.touches[0]) return;
-    cursor = indexAt(e.touches[0].clientX);
-    showIndex(cursor, e.touches[0].clientX);
-  }, { passive: true });
-  wrap.addEventListener("touchmove", (e) => {
-    if (!e.touches[0]) return;
-    cursor = indexAt(e.touches[0].clientX);
-    showIndex(cursor, e.touches[0].clientX);
-  }, { passive: true });
   wrap.addEventListener("keydown", (e) => {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
     e.preventDefault();
     cursor = Math.max(0, Math.min(arcModel.count - 1, cursor + (e.key === "ArrowRight" ? 1 : -1)));
     showIndex(cursor, null);
   });
+  wrap.addEventListener("focus", () => {
+    showIndex(cursor, null);
+  });
   wrap.addEventListener("blur", () => {
     tip.hidden = true;
   });
 }
+
+let resizeTimer = 0;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (arcKey() === lastArcKey) return;
+    render();
+  }, 150);
+});
 
 function bindChrome() {
   const q = document.getElementById("q");

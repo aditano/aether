@@ -2,6 +2,39 @@ import { fmtPrecip, hourIndex, minutesOf, proseTime, proseWhen, todayDailyIndex,
 
 export const ARC = { width: 960, height: 208, pad: 8, count: 24 };
 
+const WIDE_ARC = {
+  width: 960,
+  height: 208,
+  pad: 8,
+  labelSize: 11,
+  tempSize: 12,
+  labelEvery: 3,
+  bandTop: 36,
+  bandBot: 152,
+  labelY: 186,
+  compact: false,
+};
+
+// A 960-wide viewBox scaled into a phone column makes hour labels about 4px tall.
+export function arcLayout(viewportWidth) {
+  const width = Number(viewportWidth) || 1400;
+  if (width >= 960) return { ...WIDE_ARC };
+  const compact = width <= 520;
+  const chartWidth = Math.max(240, Math.floor((width - 80) / 40) * 40);
+  return {
+    width: chartWidth,
+    height: compact ? 176 : 188,
+    pad: 8,
+    labelSize: compact ? 14 : 13,
+    tempSize: compact ? 16 : 15,
+    labelEvery: compact ? 4 : 3,
+    bandTop: compact ? 26 : 30,
+    bandBot: compact ? 132 : 142,
+    labelY: compact ? 160 : 172,
+    compact: true,
+  };
+}
+
 const BANDS = {
   "clear-day": "#3f4d66",
   "clear-dawn": "#6a4634",
@@ -84,11 +117,9 @@ function escAttr(value) {
   return String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
 }
 
-function arcSvg(hours, forecast, suns) {
-  const { width, height, pad } = ARC;
+function arcSvg(hours, forecast, suns, layout) {
+  const { width, height, pad, labelSize, tempSize, labelEvery, bandTop, bandBot, labelY } = layout;
   const col = (width - pad * 2) / hours.length;
-  const bandTop = 36;
-  const bandBot = 152;
   const temps = hours.map((hour) => hour.temp).filter((temp) => temp != null);
   let min = Math.min(...temps);
   let max = Math.max(...temps);
@@ -128,13 +159,14 @@ function arcSvg(hours, forecast, suns) {
     const i = hours.indexOf(hour);
     const x = Math.max(pad + 14, Math.min(width - pad - 14, pad + i * col));
     const y = Math.max(16, yOf(hour.temp) - 10);
-    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" fill="#f4efe4" font-size="12" font-family="IBM Plex Mono, ui-monospace, monospace" stroke="#08090b" stroke-width="3" paint-order="stroke">${text}</text>`;
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" fill="#f4efe4" font-size="${tempSize}" font-family="IBM Plex Mono, ui-monospace, monospace" stroke="#08090b" stroke-width="3" paint-order="stroke">${text}</text>`;
   };
   const extremes = spread >= 4 ? `${mark(maxHour, `${Math.round(maxHour.temp)}°`)}${minHour !== maxHour ? mark(minHour, `${Math.round(minHour.temp)}°`) : ""}` : "";
   const labels = hours.map((hour, i) => {
-    if (i === 0 || i % 3 !== 0) return "";
+    if (i === 0 || i % labelEvery !== 0) return "";
     const x = pad + (i + 0.5) * col;
-    return `<text x="${x.toFixed(1)}" y="186" text-anchor="middle" fill="#8b909a" font-size="11" font-family="IBM Plex Mono, ui-monospace, monospace">${proseTime(hour.iso)}</text>`;
+    if (layout.compact && Math.abs(x - nowX) < labelSize * 2.4) return "";
+    return `<text x="${x.toFixed(1)}" y="${labelY}" text-anchor="middle" fill="#8b909a" font-size="${labelSize}" font-family="IBM Plex Mono, ui-monospace, monospace">${proseTime(hour.iso)}</text>`;
   }).join("");
   const nowLabelX = Math.max(pad + 16, Math.min(width - pad - 16, nowX));
   const sunMark = (iso) => {
@@ -152,7 +184,7 @@ function arcSvg(hours, forecast, suns) {
     ${line ? `<path d="${line}" fill="none" stroke="rgb(0 0 0 / 0.45)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
     ${line ? `<path d="${line}" fill="none" stroke="#f4efe4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
     ${extremes}
-    <text x="${nowLabelX.toFixed(1)}" y="186" text-anchor="middle" fill="#f4efe4" font-size="11" font-family="IBM Plex Mono, ui-monospace, monospace">Now</text>
+    <text x="${nowLabelX.toFixed(1)}" y="${labelY}" text-anchor="middle" fill="#f4efe4" font-size="${labelSize}" font-family="IBM Plex Mono, ui-monospace, monospace">Now</text>
     <line x1="${nowX.toFixed(1)}" y1="${bandTop - 6}" x2="${nowX.toFixed(1)}" y2="${bandBot}" stroke="#f4efe4" stroke-width="1.25"/>
     ${nowTemp == null ? "" : `<circle cx="${nowX.toFixed(1)}" cy="${yOf(nowTemp).toFixed(1)}" r="3.5" fill="#f4efe4"/>`}
     ${sunMark(suns.rise)}${sunMark(suns.set)}${sunMark(suns.nextRise)}${sunMark(suns.nextSet)}
@@ -160,7 +192,7 @@ function arcSvg(hours, forecast, suns) {
   </svg>`;
 }
 
-export function buildArc(forecast, units) {
+export function buildArc(forecast, units, layout = arcLayout(1400)) {
   if (!forecast?.hourly?.time?.length || !forecast.current) return null;
   const idx = hourIndex(forecast.hourly.time, forecast.current.time);
   const dayIdx = todayDailyIndex(forecast);
@@ -195,10 +227,10 @@ export function buildArc(forecast, units) {
   const caption = arcCaption(hours, forecast.current);
   return {
     caption,
-    svg: arcSvg(hours, forecast, suns),
+    svg: arcSvg(hours, forecast, suns, layout),
     hours: hours.map((hour) => ({ detail: tipFor(hour, units) })),
     count: hours.length,
-    width: ARC.width,
-    pad: ARC.pad,
+    width: layout.width,
+    pad: layout.pad,
   };
 }
