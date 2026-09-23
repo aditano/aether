@@ -399,7 +399,7 @@ function paintChrome() {
           <button class="icon-btn" id="studio-toggle" aria-label="${state.studio ? "Exit fullscreen" : "Open radar studio"}">${state.studio ? collapseIcon : expandIcon}</button>
         </div>
       </div>
-      <div class="seg wrap" id="radar-layers">
+      <div class="seg seg-wrap" id="radar-layers">
         ${layers.map((l) => `<button type="button" class="${state.layer === l.id ? "on" : ""}" data-layer="${l.id}">${l.label}</button>`).join("")}
       </div>`;
   }
