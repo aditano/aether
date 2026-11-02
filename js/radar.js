@@ -424,7 +424,7 @@ function paintChrome() {
       <input id="radar-slider" type="range" min="0" max="${Math.max(0, frames.length - 1)}" value="${state.frame}" aria-label="Radar time"/>
       <span class="mono" id="radar-stamp">—</span>
       <label class="opacity-lab"><span class="mono">Opacity</span>
-        <input id="radar-opacity" type="range" min="0.25" max="1" step="0.05" value="${state.opacity}"/>
+        <input id="radar-opacity" type="range" min="0.25" max="1" step="0.05" value="${state.opacity}" aria-label="Radar opacity"/>
       </label>
       <div class="seg" id="radar-speed">
         <button type="button" data-speed="0.5" class="${state.speed === 0.5 ? "on" : ""}">½×</button>
