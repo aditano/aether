@@ -3,6 +3,7 @@ import {
   collapseIcon,
   expandIcon,
   closeIcon,
+  esc,
   hasWebGL2,
   inConus,
   pauseIcon,
@@ -11,15 +12,15 @@ import {
   recenterIcon,
 } from "./util.js";
 
-/** Build the radar studio HUD markup. Place names must stay escaped for innerHTML. */
+/** Build the radar studio HUD markup with user/data strings escaped for innerHTML. */
 export function studioHudHtml(placeName, temperature) {
   const temp = temperature == null ? "" : `${Math.round(temperature)}°`;
   return `
       <div class="studio-meta">
-        <p class="studio-place">${placeName ?? ""}</p>
-        <p class="studio-temp">${temp}</p>
+        <p class="studio-place">${esc(placeName)}</p>
+        <p class="studio-temp">${esc(temp)}</p>
       </div>
-      <button class="icon-btn glass" id="studio-close" aria-label="Close radar studio">${closeIcon}</button>`;
+      <button type="button" class="icon-btn glass" id="studio-close" aria-label="Close radar studio">${closeIcon}</button>`;
 }
 
 const IEM_SUBS = ["", "1", "2", "3"];

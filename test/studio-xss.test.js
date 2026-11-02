@@ -7,7 +7,7 @@ test("studio HUD escapes a hostile place name before innerHTML", () => {
   const html = studioHudHtml(hostile, 72);
   assert.match(html, /class="studio-place"/);
   assert.doesNotMatch(html, /<img\b/);
-  assert.doesNotMatch(html, /onerror=/i);
+  assert.doesNotMatch(html, /<\/img>/);
   assert.match(html, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;evil&lt;\/img&gt;/);
   assert.match(html, />72°</);
 });
