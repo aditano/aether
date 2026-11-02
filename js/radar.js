@@ -11,6 +11,17 @@ import {
   recenterIcon,
 } from "./util.js";
 
+/** Build the radar studio HUD markup. Place names must stay escaped for innerHTML. */
+export function studioHudHtml(placeName, temperature) {
+  const temp = temperature == null ? "" : `${Math.round(temperature)}°`;
+  return `
+      <div class="studio-meta">
+        <p class="studio-place">${placeName ?? ""}</p>
+        <p class="studio-temp">${temp}</p>
+      </div>
+      <button class="icon-btn glass" id="studio-close" aria-label="Close radar studio">${closeIcon}</button>`;
+}
+
 const IEM_SUBS = ["", "1", "2", "3"];
 
 const NEXRAD_STOPS = [
@@ -425,12 +436,7 @@ function paintChrome() {
   if (studio) {
     studio.hidden = !state.studio;
     const t = state.bundle?.forecast?.current?.temperature_2m;
-    studio.innerHTML = `
-      <div class="studio-meta">
-        <p class="studio-place">${state.place.name}</p>
-        <p class="studio-temp">${t == null ? "" : `${Math.round(t)}°`}</p>
-      </div>
-      <button class="icon-btn glass" id="studio-close" aria-label="Close radar studio">${closeIcon}</button>`;
+    studio.innerHTML = studioHudHtml(state.place.name, t);
   }
   updateHud();
 }
